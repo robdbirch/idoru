@@ -1,8 +1,91 @@
 # Idoru
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/idoru`. To experiment with that code, run `bin/console` for an interactive prompt.
+A framework for building **Rack** based `HTTP` servers that are used to build **API.AI** fulfillment webhooks. The basic idea is to leverage the standard MVC idiom where requests are dispatched to fulfillment controllers and the appropriate method names by mapping API.AI actions. The message rendering will use **API.AI** supported messaging platforms by rendering the **API.AI** supported `JSON`. The goal is to keep it lightweight and to remove the typical web server infrastructure for supporting web pages. Idoru will reduce the code for double dispatch from `POST` to webhook actions and increase some flexibility in routing based on actions.
 
-TODO: Delete this and the text above, and describe your gem
+## Initial Framework User Stories 
+ 
+### API.AI Action Format
+**API.AI** intent actions should use the following naming convention:
+
+    bot_name.*.fulfillment_controller.fulfillment_action
+              
+     weather.forecasts.five_day
+       ^        ^        ^
+       |        |        |
+      bot       |        |
+            controller   |
+                       method
+
+
+**Naming Convention:**
+
+* The first word `weather` should be the name of the bot
+* The second to last word `forecasts` should be the controller name
+* The last word `five_day` should be the method name
+* Any words used in between the above conventions can be used for name spacing or scoping and might provide some action routing flexibility
+
+### Command Line Tools
+Generators will be provided to help expedite development and testing. 
+When the command line generators are built the goal is to get them to operate as demonstrated below:   
+
+    
+    $ idoru bot weather                                         # create a weather bot webhook project
+    
+    $ cd weather                                                # change into the project
+
+    $ idoru generate fulfillment forecasts five_day historical  # generate a fulfillment controller 
+    
+    $ idoru generate message --platform apiai,slack,facebook forecasts:five_day,historical   # generate the return message
+    
+    $ idoru generate scaffold --platform apiai,slack,facebook forecasts:five_day,historical  # single command to do both of the two previous commands
+    
+### Fulfillment Controller
+The goal of the controller:
+
+ * Dispatch to a mapped fulfillment controller and method according to the API.AI action
+ * Easier access API.AI JSON data through request and response objects 
+ * Help make it easier to access and validate webhook request data
+ * Quicker integration to on-site and remote systems
+ * Prep data for message rendering
+ 
+        class ForecastsFulfillment < FulfillmentBase
+      
+            def five_day
+                @city = params['city']
+                @user = request.context[user]
+                @forecast = weather_api.five_day(@city)
+                response.context_out << ApiAiRuby::Context.new('five_day_city', 3, { city: @forecasts.city })
+                render 
+            end
+            
+        end
+
+### Message Rendering
+Message rendering should make it easier to take the data collected in the controller and fill out messaging templates. Messaging templates should be able to be generate some scaffolding
+
+    # idoru generate message --platform apiai --type card color_picker:pick_one
+
+    pick_one.json.apiai.card.erb
+    
+    {
+        type: 1,
+        title: Colors,
+        subtitle: Select one
+        butons: <% @colors.map { |color| {text: color.name, postback: color.rgb} }.to_json %> 
+    }
+
+### API.AI Action Routing:
+
+The action routing config will allow some flexibility.
+
+    Idoru.application.actions.generate do
+    
+      fulfillment 'weather.forecasts.five_day', to: 'forecasts#five_day'
+    
+    end     
+
+### Notes
+On a current project I have built an initial quick solution on **Sinatra** that has a few aspects of this solution. My plan to hopefully replace the **Sinatra** solution with **Idoru**.
 
 ## Installation
 
@@ -22,7 +105,7 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+
 
 ## Development
 
