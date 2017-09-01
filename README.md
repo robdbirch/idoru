@@ -1,6 +1,6 @@
 # Idoru
 
-A framework for building **Rack** based `HTTP` servers that are used to build **API.AI** fulfillment webhooks. The basic idea is to leverage the standard MVC idiom where requests are dispatched to fulfillment controllers and the appropriate method names by mapping API.AI actions. The message rendering will use **API.AI** supported messaging platforms by rendering the **API.AI** supported `JSON`. The goal is to keep it lightweight and to remove the typical web server infrastructure for supporting web pages. Idoru will reduce the code for double dispatch from `POST` to webhook actions and increase some flexibility in routing based on actions.
+A framework for building **API.AI** bot fulfillment webhooks using **Rack** based `HTTP` servers. The basic idea is to leverage the standard MVC idiom where requests are dispatched to fulfillment controllers and the appropriate method names by mapping API.AI actions. The message rendering will use **API.AI** supported messaging platforms by rendering the **API.AI** supported `JSON`. The goal is to keep it lightweight and to remove the typical web server infrastructure for supporting web pages. Idoru will reduce the code for double dispatch from `POST` to webhook actions and increase some flexibility in routing based on action routing.
 
 ## Initial Framework User Stories 
  
@@ -33,7 +33,7 @@ When the command line generators are built the goal is to get them to operate as
     
     $ cd weather                                                # change into the project
 
-    $ idoru generate fulfillment forecasts five_day historical  # generate a fulfillment controller 
+    $ idoru generate fulfillment forecasts five_day historical  # generate a fulfillment controller with methods five_day and historical
     
     $ idoru generate message --platform apiai,slack,facebook forecasts:five_day,historical   # generate the return message
     
@@ -48,12 +48,13 @@ The goal of the controller:
  * Quicker integration to on-site and remote systems
  * Prep data for message rendering
  
+ 
         class ForecastsFulfillment < FulfillmentBase
       
             def five_day
                 @city = params['city']
                 @user = request.context[user]
-                @forecast = weather_api.five_day(@city)
+                @forecasts = weather_api.five_day(@city)
                 response.context_out << ApiAiRuby::Context.new('five_day_city', 3, { city: @forecasts.city })
                 render 
             end
@@ -71,7 +72,7 @@ Message rendering should make it easier to take the data collected in the contro
         type: 1,
         title: Colors,
         subtitle: Select one
-        butons: <% @colors.map { |color| {text: color.name, postback: color.rgb} }.to_json %> 
+        butons: <% @colors.map { |color| {text: color.name, postback: color.rgb} } %> 
     }
 
 ### API.AI Action Routing:
